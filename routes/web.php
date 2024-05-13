@@ -18,6 +18,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/datos', function () {
+    $response = Http::get('https://apirestnodejs-jev4.onrender.com/users');
+    return $response->json();
+});
+
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
