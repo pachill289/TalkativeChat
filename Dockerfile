@@ -1,56 +1,37 @@
-FROM php:8.2-apache
+# Use PHP with Apache as the base image
+FROM php:8.2-apache as web
 
-# Arguments defined in docker-compose.yml
-ARG user
-ARG uid
-
-# Install system dependencies
+# Install Additional System Dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip
+    libzip-dev \
+    zip
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Enable Apache mod_rewrite for URL rewriting
+RUN a2enmod rewrite
+
 # Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+RUN docker-php-ext-install pdo_mysql zip
 
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Configure Apache DocumentRoot to point to Laravel's public directory
+# and update Apache configuration files
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Set up node and npm
+# Copy the application code
+COPY . /var/www/html
 
-RUN curl -sL https://deb.nodesource.com/setup_18.x | bash
-RUN apt-get update && apt-get -y install nodejs 
-
-# Set working directory
-WORKDIR /var/www
-
-RUN apt-get update && apt-get install -y \
-        libfreetype6-dev \
-        libjpeg62-turbo-dev \
-        libpng-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd
-
+# Set the working directory
 WORKDIR /var/www/html
-COPY . .
 
-#Modify php.ini setings
+# Install composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-RUN touch /usr/local/etc/php/conf.d/uploads.ini \
-    && echo "upload_max_filesize = 10M;" >> /usr/local/etc/php/conf.d/uploads.ini
-
-#Serve the application
-
+# Install project dependencies
 RUN composer install
-RUN npm install
-RUN npm update
-RUN npm cache clean --force
-RUN npm run build
-CMD composer dump-autoload && php artisan migrate:fresh --force && php artisan db:seed --force && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=$PORT
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
