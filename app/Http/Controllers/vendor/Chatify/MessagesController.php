@@ -64,15 +64,40 @@ class MessagesController extends Controller
     {
         $favorite = Chatify::inFavorite($request['id']);
         $fetch = User::where('id', $request['id'])->first();
+        $userAvatar = null;
+
         if($fetch){
             $userAvatar = Chatify::getUserWithAvatar($fetch)->avatar;
+            // Si la imagen es una URL de imgbb, obtén la URL directamente
+            if (Str::startsWith($userAvatar, 'https://i.ibb.co/')) {
+                $imageId = basename(parse_url($userAvatar, PHP_URL_PATH));
+                $userAvatar = $this->getImageFromImgbb($imageId);
+            }
         }
+
         return Response::json([
             'favorite' => $favorite,
             'fetch' => $fetch ?? null,
             'user_avatar' => $userAvatar ?? null,
         ]);
     }
+
+    /**
+     * Obtiene la URL de una imagen en imgbb a partir de su ID.
+     *
+     * @param string $imageId
+     * @return string|null
+     */
+    public function getImageFromImgbb($imageId)
+    {
+        $client = new Client();
+        $response = $client->get("https://api.imgbb.com/1/image/$imageId?key=053648b06603be2d33ae1491a2b5eb18");
+
+        $data = json_decode($response->getBody(), true);
+
+        return $data['data']['url'] ?? null;
+    }
+
 
     /**
      * This method to make a links for the attachments
@@ -119,9 +144,24 @@ class MessagesController extends Controller
                 if (in_array(strtolower($file->extension()), $allowed)) {
                     // get attachment name
                     $attachment_title = $file->getClientOriginalName();
-                    // upload attachment and store the new name
-                    $attachment = Str::uuid() . "." . $file->extension();
-                    $file->storeAs(config('chatify.attachments.folder'), $attachment, config('chatify.storage_disk_name'));
+                    // upload attachment to imgbb
+                    $client = new Client();
+                    $response = $client->post('https://api.imgbb.com/1/upload', [
+                        'multipart' => [
+                            [
+                                'name'     => 'image',
+                                'contents' => fopen($file->path(), 'r'),
+                                'filename' => $attachment_title
+                            ],
+                            [
+                                'name' => 'key',
+                                'contents' => '053648b06603be2d33ae1491a2b5eb18'
+                            ]
+                        ]
+                    ]);
+
+                    $data = json_decode($response->getBody(), true);
+                    $attachment = $data['data']['url'];
                 } else {
                     $error->status = 1;
                     $error->message = "File extension not allowed!";
@@ -137,7 +177,7 @@ class MessagesController extends Controller
                 'from_id' => Auth::user()->id,
                 'to_id' => $request['id'],
                 'body' => htmlentities(trim($request['message']), ENT_QUOTES, 'UTF-8'),
-                'attachment' => ($attachment) ? json_encode((object)[
+                'attachment' => $attachment ? json_encode((object)[
                     'new_name' => $attachment,
                     'old_name' => htmlentities(trim($attachment_title), ENT_QUOTES, 'UTF-8'),
                 ]) : null,
@@ -160,7 +200,6 @@ class MessagesController extends Controller
             'tempID' => $request['temporaryMsgId'],
         ]);
     }
-
     /**
      * fetch [user/group] messages from database
      *
@@ -369,7 +408,7 @@ class MessagesController extends Controller
         for ($i = 0; $i < count($shared); $i++) {
             $sharedPhotos .= view('Chatify::layouts.listItem', [
                 'get' => 'sharedPhoto',
-                'image' => Chatify::getAttachmentUrl($shared[$i]),
+                'image' => /*Chatify::getAttachmentUrl*/($shared[$i]),
             ])->render();
         }
         // send the response
