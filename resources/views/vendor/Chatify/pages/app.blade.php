@@ -27,13 +27,15 @@
            {{-- ---------------- [ Pestaña de usuario ] ---------------- --}}
            <div class="show messenger-tab users-tab app-scroll" data-view="users">
                {{-- Favoritos --}}
-               {{--div class="favorites-section">
+               <div class="favorites-section" style="display: none;">
                 <p class="messenger-title"><span>Favoritos</span></p>
                 <div class="messenger-favorites app-scroll-hidden"></div>
-               </div>--}
+               </div>
                {{-- Mensajes guardados --}}
-               {{--<p class="messenger-title"><span>Tu espacio</span></p>
-               {!! view('Chatify::layouts.listItem', ['get' => 'saved']) !!} --}
+               <div style="display: none;">
+               <p class="messenger-title" style="display: none;"><span>Tu espacio</span></p>
+               {!! view('Chatify::layouts.listItem', ['get' => 'saved']) !!}
+               </div>
                {{-- Contacto --}}
                <p class="messenger-title"><span>Todos los mensajes</span></p>
                <div class="listOfContacts" style="width: 100%;height: calc(100% - 272px);position: relative;"></div>
