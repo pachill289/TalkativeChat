@@ -186,10 +186,20 @@ class MessagesController extends Controller
 
             // Send message data to the API
             try {
-                $client = new Client();
-                $response = $client->post('http://localhost:3000/message/add', [
+                // Obtén la URL base desde el archivo .env
+                $apiBaseUrl = env('API_BASE_URL');                
+                // Define el endpoint específico
+                $endpoint = '/message/add';
+                // Construye la URL completa
+                $apiUrl = $apiBaseUrl . $endpoint;               
+                // Crear un nuevo cliente GuzzleHttp
+                $client = new Client();                
+                // Hacer la solicitud POST
+                $response = $client->post($apiUrl, [
                     'json' => $messageData
                 ]);
+                
+                // Decodificar la respuesta de la API
                 $apiResponse = json_decode($response->getBody(), true);
             } catch (\Exception $e) {
                 $error->status = 1;
@@ -280,7 +290,10 @@ class MessagesController extends Controller
         ];
 
         // Realizar la solicitud a la API
-        $apiUrl = 'http://localhost:3000/fetchMessages/' . $request['id'];
+        $apiBaseUrl = env('API_BASE_URL');
+        $endpoint = '/fetchMessages/' . $request['id'];
+        $apiUrl = $apiBaseUrl . $endpoint;
+
         $apiResponse = Http::get($apiUrl);
 
         if ($apiResponse->successful()) {
@@ -516,7 +529,10 @@ class MessagesController extends Controller
         $userId = $request['user_id'];
 
         // Realizar la solicitud a la API
-        $apiUrl = 'http://localhost:3000/getSharedPhotos/' . $userId;
+        $apiBaseUrl = env('API_BASE_URL');
+        $endpoint = '/getSharedPhotos/' . $userId;;
+        $apiUrl = $apiBaseUrl . $endpoint;
+
         $apiResponse = Http::get($apiUrl);
 
         if ($apiResponse->successful()) {
