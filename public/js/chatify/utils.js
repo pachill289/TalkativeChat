@@ -12,15 +12,15 @@ function dateStringToTimeAgo(dateString) {
   const days = Math.floor(hours / 24);
   const weeks = Math.floor(days / 7);
   if (seconds < 60) {
-    return "just now";
+    return "ahora";
   } else if (minutes < 60) {
-    return `${minutes}m ago`;
+    return `Hace ${minutes} minutos`;
   } else if (hours < 24) {
-    return `${hours}h ago`;
+    return `Hace ${hours} horas`;
   } else if (days < 7) {
-    return `${days}d ago`;
+    return `Hace ${days} días`;
   } else {
-    return `${weeks}w ago`;
+    return `Hace ${weeks} semana`;
   }
 }
 /**

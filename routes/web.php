@@ -19,7 +19,7 @@ Route::get('/', function () {
 });
 
 Route::get('/datos', function () {
-    $response = Http::get('https://apirestnodejs-jev4.onrender.com/users');
+    $response = Http::get('https://apirestnodejs-jev4.onrender.com/users/view');
     return $response->json();
 });
 
