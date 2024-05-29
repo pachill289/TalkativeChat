@@ -385,39 +385,88 @@ class MessagesController extends Controller
      */
     public function getContacts(Request $request)
     {
-        // get all users that received/sent message from/to [Auth user]
-        $users = Message::join('users',  function ($join) {
-            $join->on('ch_messages.from_id', '=', 'users.id')
-                ->orOn('ch_messages.to_id', '=', 'users.id');
-        })
-        ->where(function ($q) {
-            $q->where('ch_messages.from_id', Auth::user()->id)
-            ->orWhere('ch_messages.to_id', Auth::user()->id);
-        })
-        ->where('users.id','!=',Auth::user()->id)
-        ->select('users.*',DB::raw('MAX(ch_messages.created_at) max_created_at'))
-        ->orderBy('max_created_at', 'desc')
-        ->groupBy('users.id')
-        ->paginate($request->per_page ?? $this->perPage);
+        $userId = Auth::user()->id;
+        $apiUrl = 'http://localhost:3000/contacts/' . $userId;
+        $apiResponse = Http::get($apiUrl);
 
-        $usersList = $users->items();
-
-        if (count($usersList) > 0) {
+        if ($apiResponse->successful()) {
+            $users = $apiResponse->json();
             $contacts = '';
-            foreach ($usersList as $user) {
-                $contacts .= Chatify::getContactItem($user);
+
+            if (is_array($users['data']) && count($users['data']) > 0) {
+                foreach ($users['data'] as $user) {
+                    $lastMessage = $this->fetchLastMessage($user['id']);
+                    $contacts .= $this->formatContactItem($user, $lastMessage);
+                }
+            } else {
+                $contacts = '<p class="message-hint center-el"><span>Tu lista de contactos está vacía</span></p>';
             }
+
+            return response()->json([
+                'contacts' => $contacts,
+                'total' => $users['total'],
+                'last_page' => $users['last_page'],
+                'debug_info' => $users,
+            ], 200);
         } else {
-            $contacts = '<p class="message-hint center-el"><span>Tu lista de contactos está vacía</span></p>';
+            // Manejar la respuesta no exitosa de la API
+            return response()->json([
+                'contacts' => '<p class="message-hint center-el"><span>Error al obtener contactos</span></p>',
+                'total' => 0,
+                'last_page' => 1,
+                'debug_info' => 'Error al realizar la solicitud a la API',
+            ], 500);
+        }
+    }
+
+    private function fetchLastMessage($userId)
+    {
+        $apiUrl = 'http://localhost:3000/getLastMessage/' . $userId;
+        $apiResponse = Http::get($apiUrl);
+
+        if ($apiResponse->successful()) {
+            $messages = $apiResponse->json();
+            return !empty($messages[0]) ? $messages[0] : null;
         }
 
-        return Response::json([
-            'contacts' => $contacts,
-            'total' => $users->total() ?? 0,
-            'last_page' => $users->lastPage() ?? 1,
-            'debug_info' => $users,
-        ], 200);
+        return null;
     }
+
+    private function formatContactItem($user, $lastMessage)
+    {
+        $userId = $user['id'] ?? '';
+        $userName = $user['name'] ?? 'Usuario desconocido';
+        $userAvatar = $user['avatar'] ?? 'default-avatar.png';
+        $maxCreatedAt = $user['max_created_at'] ?? '';
+        $lastMessageText = !empty($lastMessage['attachment']) && $lastMessage['attachment'] == 'image' ? 'Archivo adjunto' : $lastMessage['body'];
+        $contactItemTime = $this->formatTimeAgo($maxCreatedAt);
+
+        return "<table class=\"messenger-list-item\" data-contact=\"{$userId}\">
+            <tr data-action=\"0\">
+                <td style=\"position: relative\">
+                    <div class=\"avatar av-m\"
+                        style=\"background-image: url('http://localhost:8000/storage/users-avatar/{$userAvatar}');\">
+                    </div>
+                </td>
+                <td>
+                    <p data-id=\"{$userId}\" data-type=\"user\">
+                        {$userName}
+                        <span class=\"contact-item-time\" data-time=\"{$maxCreatedAt}\">{$contactItemTime}</span>
+                    </p>
+                    <span>
+                        <span class=\"fas fa-file\"></span> {$lastMessageText}
+                    </span>
+                </td>
+            </tr>
+        </table>\n\n\n\n\n";
+    }
+
+    private function formatTimeAgo($time)
+    {
+        // Implementa la lógica para convertir la fecha y hora en el formato deseado
+        return 'hace X tiempo'; // Reemplaza esto con la lógica adecuada
+    }
+
 
     /**
      * Update user's list item data
@@ -469,6 +518,7 @@ class MessagesController extends Controller
      */
     public function getFavorites(Request $request)
     {
+        if ($request->isMethod('post')) {
         /*$favoritesList = null;
         $favorites = Favorite::where('user_id', Auth::user()->id);
         foreach ($favorites->get() as $favorite) {
@@ -485,6 +535,7 @@ class MessagesController extends Controller
                 ? $favoritesList
                 : 0,
         ], 200);*/
+        }
     }
 
     /**
@@ -525,7 +576,7 @@ class MessagesController extends Controller
      */
     public function sharedPhotos(Request $request)
     {
-        $sharedPhotos = '';
+        /*$sharedPhotos = '';
         $userId = $request['user_id'];
 
         // Realizar la solicitud a la API
@@ -554,7 +605,7 @@ class MessagesController extends Controller
                 'shared' => '<p class="message-hint"><span>Error al obtener fotos compartidas</span></p>',
                 'debug_info' => '<p class="message-hint"><span>Error al obtener fotos compartidas</span></p>',
             ], 500);
-        }
+        }*/
     }
 
 

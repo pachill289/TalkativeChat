@@ -1,3 +1,4 @@
+///app:
 <x-app-layout>
 @include('Chatify::layouts.headLinks')
 <div class="messenger">
@@ -27,10 +28,10 @@
            {{-- ---------------- [ Pestaña de usuario ] ---------------- --}}
            <div class="show messenger-tab users-tab app-scroll" data-view="users">
                {{-- Favoritos --}}
-               <div class="favorites-section" style="display: none;">
+               {{--<div class="favorites-section" style="display: none;">
                 <p class="messenger-title"><span>Favoritos</span></p>
                 <div class="messenger-favorites app-scroll-hidden"></div>
-               </div>
+               </div>--}}
                {{-- Mensajes guardados --}}
                <div style="display: none;">
                <p class="messenger-title" style="display: none;"><span>Tu espacio</span></p>
