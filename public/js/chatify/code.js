@@ -326,9 +326,9 @@ function hScroller(scroller) {
 function disableOnLoad(disable = true) {
  if (disable) {
    // hide star button
-   $(".add-to-favorite").hide();
+   //$(".add-to-favorite").hide();
    // hide send card
-   $(".messenger-sendCard").hide();
+   //$(".messenger-sendCard").hide();
    // add loading opacity to messages container
    messagesContainer.css("opacity", ".5");
    // disable message form fields
@@ -337,9 +337,9 @@ function disableOnLoad(disable = true) {
    $(".upload-attachment").attr("disabled", "disabled");
  } else {
    // show star button
-   if (getMessengerId() != auth_id) {
+   /*if (getMessengerId() != auth_id) {
      $(".add-to-favorite").show();
-   }
+   }*/
    // show send card
    $(".messenger-sendCard").show();
    // remove loading opacity to messages container
@@ -374,70 +374,87 @@ function errorMessageCard(id) {
 * Fetch id data (user/group) and update the view
 *-------------------------------------------------------------
 */
-function IDinfo(id) {
- // clear temporary message id
- temporaryMsgId = 0;
- // clear typing now
- typingNow = 0;
- // show loading bar
- NProgress.start();
- // disable message form
- disableOnLoad();
- if (messenger != 0) {
-   // get shared photos
-   //getSharedPhotos(id);
-   // Get info
-   $.ajax({
-     url: url + "/idInfo",
-     method: "POST",
-     data: { _token: csrfToken, id },
-     dataType: "JSON",
-     success: (data) => {
-       if (!data?.fetch) {
-         NProgress.done();
-         NProgress.remove();
-         return;
-       }
-       // avatar photo
-       $(".messenger-infoView")
-         .find(".avatar")
-         .css("background-image", 'url("' + data.user_avatar + '")');
-       $(".header-avatar").css(
-         "background-image",
-         'url("' + data.user_avatar + '")'
-       );
-       // Show shared and actions
-       $(".messenger-infoView-btns .delete-conversation").show();
-       $(".messenger-infoView-shared").show();
-       // fetch messages
-       fetchMessages(id, true);
-       // focus on messaging input
-       messageInput.focus();
-       // update info in view
-       $(".messenger-infoView .info-name").text(data.fetch.name);
-       $(".m-header-messaging .user-name").text(data.fetch.name);
-       // Star status
-       data.favorite > 0
-         ? $(".add-to-favorite").addClass("favorite")
-         : $(".add-to-favorite").removeClass("favorite");
-       // form reset and focus
-       $("#message-form").trigger("reset");
-       cancelAttachment();
-       messageInput.focus();
-     },
-     error: () => {
-       console.error("Couldn't fetch user data!");
-       // remove loading bar
-       NProgress.done();
-       NProgress.remove();
-     },
-   });
- } else {
-   // remove loading bar
-   NProgress.done();
-   NProgress.remove();
- }
+async function IDinfo(id) {
+  // clear temporary message id
+  temporaryMsgId = 0;
+  // clear typing now
+  typingNow = 0;
+  // show loading bar
+  //NProgress.start();
+  // disable message form
+  disableOnLoad();
+
+  if (messenger != 0) {
+    try {
+      // Get info
+      const response = await fetch(url + "/idInfo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken
+        },
+        body: JSON.stringify({ id })
+      });
+
+      const data = await response.json();
+      if (!data?.fetch) {
+        //NProgress.done();
+        //NProgress.remove();
+        return;
+      }
+
+      fetchMessages(id, true);
+
+      // Batch DOM updates
+      const infoView = $(".messenger-infoView");
+      const headerAvatar = $(".header-avatar");
+      const infoName = $(".messenger-infoView .info-name");
+      const headerName = $(".m-header-messaging .user-name");
+      const addToFavorite = $(".add-to-favorite");
+      //const deleteConversation = $(".messenger-infoView-btns .delete-conversation");
+      //const sharedSection = $(".messenger-infoView-shared");
+
+      // avatar photo
+      const avatarUrl = 'url("' + data.user_avatar + '")';
+      infoView.find(".avatar").css("background-image", avatarUrl);
+      headerAvatar.css("background-image", avatarUrl);
+
+      // Show shared and actions
+      //deleteConversation.show();
+      //sharedSection.show();
+
+      // fetch messages
+      //fetchMessages(id, true);
+
+      // update info in view
+      infoName.text(data.fetch.name);
+      headerName.text(data.fetch.name);
+
+      // Star status
+      /*if (data.favorite > 0) {
+        addToFavorite.addClass("favorite");
+      } else {
+        addToFavorite.removeClass("favorite");
+      }*/
+
+      // form reset and focus
+      $("#message-form").trigger("reset");
+      cancelAttachment();
+      messageInput.focus();
+    } catch (error) {
+      console.error("Couldn't fetch user data!", error);
+    } finally {
+      // remove loading bar
+      //NProgress.done();
+      //NProgress.remove();
+    }
+  } else {
+    // remove loading bar
+    //NProgress.done();
+    //NProgress.remove();
+  }
 }
+
 
 /**
 *-------------------------------------------------------------
@@ -530,65 +547,65 @@ function sendMessage() {
 let messagesPage = 1;
 let noMoreMessages = false;
 let messagesLoading = false;
+
 function setMessagesLoading(loading = false) {
- if (!loading) {
-   messagesContainer.find(".messages").find(".loading-messages").remove();
-   NProgress.done();
-   NProgress.remove();
- } else {
-   messagesContainer
-     .find(".messages")
-     .prepend(loadingWithContainer("loading-messages"));
- }
- messagesLoading = loading;
+  /*const loadingSelector = ".loading-messages";
+  if (!loading) {
+    messagesContainer.find(loadingSelector).remove();*/
+    //NProgress.done();
+    //NProgress.remove();
+  /*} else {
+    messagesContainer.find(".messages").prepend(loadingWithContainer(loadingSelector));
+  }
+  messagesLoading = loading;*/
 }
-function fetchMessages(id, newFetch = false) {
- if (newFetch) {
-   messagesPage = 1;
-   noMoreMessages = false;
- }
- if (messenger != 0 && !noMoreMessages && !messagesLoading) {
-   const messagesElement = messagesContainer.find(".messages");
-   setMessagesLoading(true);
-   $.ajax({
-     url: url + "/fetchMessages",
-     method: "POST",
-     data: {
-       _token: csrfToken,
-       id: id,
-       page: messagesPage,
-     },
-     dataType: "JSON",
-     success: (data) => {
-       setMessagesLoading(false);
-       if (messagesPage == 1) {
-         messagesElement.html(data.messages);
-         scrollToBottom(messagesContainer);
-       } else {
-         const lastMsg = messagesElement.find(
-           messagesElement.find(".message-card")[0]
-         );
-         const curOffset =
-           lastMsg.offset().top - messagesContainer.scrollTop();
-         messagesElement.prepend(data.messages);
-         messagesContainer.scrollTop(lastMsg.offset().top - curOffset);
-       }
-       // trigger seen event
-       makeSeen(true);
-       // Pagination lock & messages page
-       noMoreMessages = messagesPage >= data?.last_page;
-       if (!noMoreMessages) messagesPage += 1;
-       // Enable message form if messenger not = 0; means if data is valid
-       if (messenger != 0) {
-         disableOnLoad(false);
-       }
-     },
-     error: (error) => {
-       setMessagesLoading(false);
-       console.error(error);
-     },
-   });
- }
+
+async function fetchMessages(id, newFetch = false) {
+  if (newFetch) {
+    messagesPage = 1;
+    noMoreMessages = false;
+  }
+  if (messenger === 0 || noMoreMessages || messagesLoading) return;
+
+  setMessagesLoading(true);
+
+  try {
+    const response = await $.ajax({
+      url: `${url}/fetchMessages`,
+      method: "POST",
+      data: {
+        _token: csrfToken,
+        id: id,
+        page: messagesPage,
+      },
+      dataType: "JSON",
+    });
+
+    const messagesElement = messagesContainer.find(".messages");
+    setMessagesLoading(false);
+
+    if (messagesPage === 1) {
+      messagesElement.html(response.messages);
+      scrollToBottom(messagesContainer);
+    } else {
+      const firstMessageCard = messagesElement.find(".message-card").first();
+      const curOffset = firstMessageCard.offset().top - messagesContainer.scrollTop();
+      messagesElement.prepend(response.messages);
+      messagesContainer.scrollTop(firstMessageCard.offset().top - curOffset);
+    }
+
+    makeSeen(true);
+    noMoreMessages = messagesPage >= response?.last_page;
+    if (!noMoreMessages) messagesPage += 1;
+
+    if (messenger !== 0) {
+      disableOnLoad(false);
+    }
+
+  } catch (error) {
+    setMessagesLoading(false);
+    console.error(error);
+  }
 }
 
 /**
@@ -855,45 +872,58 @@ function checkInternet(state, selector) {
 let contactsPage = 1;
 let contactsLoading = false;
 let noMoreContacts = false;
+
 function setContactsLoading(loading = false) {
- if (!loading) {
-   $(".listOfContacts").find(".loading-contacts").remove();
- } else {
-   $(".listOfContacts").append(
-     `<div class="loading-contacts">${listItemLoading(4)}</div>`
-   );
- }
- contactsLoading = loading;
+  const listOfContacts = $(".listOfContacts");
+  const loadingContacts = listOfContacts.find(".loading-contacts");
+
+  if (!loading) {
+    loadingContacts.remove();
+  } else {
+    if (loadingContacts.length === 0) {
+      listOfContacts.append(
+        `<div class="loading-contacts">${listItemLoading(4)}</div>`
+      );
+    }
+  }
+
+  contactsLoading = loading;
 }
-function getContacts() {
- if (!contactsLoading && !noMoreContacts) {
-   setContactsLoading(true);
-   $.ajax({
-     url: url + "/getContacts",
-     method: "GET",
-     data: { _token: csrfToken, page: contactsPage },
-     dataType: "JSON",
-     success: (data) => {
-       setContactsLoading(false);
-       if (contactsPage < 2) {
-         $(".listOfContacts").html(data.contacts);
-       } else {
-         $(".listOfContacts").append(data.contacts);
-       }
-       updateSelectedContact();
-       // update data-action required with [responsive design]
-       cssMediaQueries();
-       // Pagination lock & messages page
-       noMoreContacts = contactsPage >= data?.last_page;
-       if (!noMoreContacts) contactsPage += 1;
-     },
-     error: (error) => {
-       setContactsLoading(false);
-       console.error(error);
-     },
-   });
- }
+async function getContacts() {
+  if (!contactsLoading && !noMoreContacts) {
+    setContactsLoading(true);
+
+    try {
+      const response = await fetch(`${url}/getContacts`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken
+        },
+      });
+
+      const data = await response.json();
+      setContactsLoading(false);
+
+      if (contactsPage < 2) {
+        $(".listOfContacts").html(data.contacts);
+      } else {
+        $(".listOfContacts").append(data.contacts);
+      }
+
+      updateSelectedContact();
+      cssMediaQueries();
+
+      noMoreContacts = contactsPage >= data?.last_page;
+      if (!noMoreContacts) contactsPage += 1;
+
+    } catch (error) {
+      setContactsLoading(false);
+      console.error("Error fetching contacts:", error);
+    }
+  }
 }
+
 
 /**
 *-------------------------------------------------------------
@@ -991,7 +1021,7 @@ function getFavoritesList() {
 *-------------------------------------------------------------
 * Get shared photos
 *-------------------------------------------------------------
-*/
+*//*
 function getSharedPhotos(user_id) {
  $.ajax({
    url: url + "/shared",
@@ -1005,7 +1035,7 @@ function getSharedPhotos(user_id) {
      console.error("Server error, check your response");
    },
  });
-}
+}*/
 
 /**
 *-------------------------------------------------------------
@@ -1069,7 +1099,7 @@ function messengerSearch(input) {
 * Delete Conversation
 *-------------------------------------------------------------
 */
-function deleteConversation(id) {
+/*function deleteConversation(id) {
  $.ajax({
    url: url + "/deleteConversation",
    method: "POST",
@@ -1118,7 +1148,7 @@ function deleteConversation(id) {
    },
  });
 }
-
+*/
 /**
 *-------------------------------------------------------------
 * Delete Message By ID
@@ -1263,7 +1293,7 @@ $(document).ready(function () {
  clearTimeout(typingTimeout);
 
  // NProgress configurations
- NProgress.configure({ showSpinner: false, minimum: 0.7, speed: 500 });
+ //NProgress.configure({ showSpinner: false, minimum: 0.7, speed: 500 });
 
  // make message input autosize.
  autosize($(".m-send"));
@@ -1312,7 +1342,7 @@ $(document).ready(function () {
  });
 
  // make favorites card dragable on click to slide.
- hScroller(".messenger-favorites");
+ //hScroller(".messenger-favorites");
 
  // click action for list item [user/group]
  $("body").on("click", ".messenger-list-item", function () {
@@ -1325,6 +1355,7 @@ $(document).ready(function () {
  });
 
  // click action for favorite button
+ /*
  $("body").on("click", ".favorite-list-item", function () {
    if ($(this).find("div").attr("data-action") == "1") {
      $(".messenger-listView").hide();
@@ -1334,7 +1365,7 @@ $(document).ready(function () {
    IDinfo(uid);
    updateSelectedContact(uid);
    routerPush(document.title, `${url}/${uid}`);
- });
+ });*/
 
  // list view buttons
  $(".listView-x").on("click", function () {

@@ -54,16 +54,16 @@
                         {{ Auth::user()->dark_mode > 0 ? 'fas' : 'far' }} fa-moon dark-mode-switch"
                          data-mode="{{ Auth::user()->dark_mode > 0 ? 1 : 0 }}"></span></p>
                     {{-- Cambiar color del chat --}}
-                    <p class="divider"></p>
+                    {{-- <p class="divider"></p> --}}
                     {{-- <p class="app-modal-header">Cambiar Color de {{ config('chatify.name') }}</p> --}}
-                    <div class="update-messengerColor">
+                    {{-- <div class="update-messengerColor">
                     @foreach (config('chatify.colors') as $color)
                         <span style="background-color: {{ $color}}" data-color="{{$color}}" class="color-btn"></span>
                         @if (($loop->index + 1) % 5 == 0)
                             <br/>
                         @endif
                     @endforeach
-                    </div>
+                    </div> --}}
                 </div>
                 <div class="app-modal-footer">
                     <a href="javascript:void(0)" class="app-btn cancel">Cancelar</a>

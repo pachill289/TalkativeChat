@@ -20,7 +20,7 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <div id="datos">485</div>
-                    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+                    {{-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
                     <script>
                         axios.get('/datos')
                             .then(function (response) {
@@ -29,7 +29,7 @@
                             .catch(function (error) {
                                 console.error(error);
                             });
-                    </script>
+                    </script> --}}
                 </div>
             </div>
         </div>
