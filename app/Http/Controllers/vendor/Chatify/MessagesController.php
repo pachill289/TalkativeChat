@@ -397,57 +397,58 @@ class MessagesController extends Controller
      * @return JsonResponse
      */
     public function getContacts(Request $request)
-{
-    // Registrar el tiempo inicial
-    $startTime = microtime(true);
-
-    $userId = Auth::user()->id;
-    $apiUrl = 'http://localhost:3000/contacts/' . $userId;
-    $apiResponse = Http::get($apiUrl);
-
-    if ($apiResponse->successful()) {
-        $users = $apiResponse->json();
-        $contacts = '';
-
-        if (is_array($users['data']) && count($users['data']) > 0) {
-            foreach ($users['data'] as $user) {
-                $lastMessage = $this->fetchLastMessage($user['id']);
-                $contacts .= $this->formatContactItem($user, $lastMessage);
-            }
-        } else {
-            $contacts = '<p class="message-hint center-el"><span>Tu lista de contactos está vacía</span></p>';
-        }
-
-        // Registrar el tiempo final y calcular el tiempo de ejecución
-        $endTime = microtime(true);
-        $executionTime = $endTime - $startTime;
-
-        return response()->json([
-            'contacts' => $contacts,
-            'total' => $users['total'],
-            'last_page' => $users['last_page'],
-            'debug_info' => $users,
-            'execution_time' => $executionTime // Tiempo de ejecución en segundos
-        ], 200);
-    } else {
-        // Manejar la respuesta no exitosa de la API
-        $endTime = microtime(true);
-        $executionTime = $endTime - $startTime;
-
-        return response()->json([
-            'contacts' => '<p class="message-hint center-el"><span>Error al obtener contactos</span></p>',
-            'total' => 0,
-            'last_page' => 1,
-            'debug_info' => 'Error al realizar la solicitud a la API',
-            'execution_time' => $executionTime // Tiempo de ejecución en segundos
-        ], 500);
-    }
-}
-
-
-    private function fetchLastMessage($userId)
     {
-        $apiUrl = 'http://localhost:3000/getLastMessage/' . $userId;
+        // Registrar el tiempo inicial
+        $startTime = microtime(true);
+
+        $userId = Auth::user()->id;
+        $apiUrl = 'http://localhost:3000/contacts/' . $userId;
+        $apiResponse = Http::get($apiUrl);
+
+        if ($apiResponse->successful()) {
+            $users = $apiResponse->json();
+            $contacts = '';
+
+            if (is_array($users['data']) && count($users['data']) > 0) {
+                foreach ($users['data'] as $user) {
+                    $authUserId = Auth::id(); // Obtiene el ID del usuario autenticado
+                    $lastMessage = $this->fetchLastMessage($authUserId, $user['id']);
+                    $contacts .= $this->formatContactItem($user, $lastMessage);
+                }
+            } else {
+                $contacts = '<p class="message-hint center-el"><span>Tu lista de contactos está vacía</span></p>';
+            }
+
+            // Registrar el tiempo final y calcular el tiempo de ejecución
+            $endTime = microtime(true);
+            $executionTime = $endTime - $startTime;
+
+            return response()->json([
+                'contacts' => $contacts,
+                'total' => $users['total'],
+                'last_page' => $users['last_page'],
+                'debug_info' => $users,
+                'execution_time' => $executionTime // Tiempo de ejecución en segundos
+            ], 200);
+        } else {
+            // Manejar la respuesta no exitosa de la API
+            $endTime = microtime(true);
+            $executionTime = $endTime - $startTime;
+
+            return response()->json([
+                'contacts' => '<p class="message-hint center-el"><span>Error al obtener contactos</span></p>',
+                'total' => 0,
+                'last_page' => 1,
+                'debug_info' => 'Error al realizar la solicitud a la API',
+                'execution_time' => $executionTime // Tiempo de ejecución en segundos
+            ], 500);
+        }
+    }
+
+
+    private function fetchLastMessage($authUserId, $userId)
+    {
+        $apiUrl = 'http://localhost:3000/getLastMessage/' . $authUserId . '/' . $userId;
         $apiResponse = Http::get($apiUrl);
 
         if ($apiResponse->successful()) {
@@ -457,6 +458,7 @@ class MessagesController extends Controller
 
         return null;
     }
+
 
     private function formatContactItem($user, $lastMessage)
     {
@@ -514,6 +516,7 @@ class MessagesController extends Controller
         // send the response
         return Response::json([
             'contactItem' => $contactItem,
+            'users' => $user,
         ], 200);
     }
 
