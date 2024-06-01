@@ -402,7 +402,7 @@ class MessagesController extends Controller
         $startTime = microtime(true);
 
         $userId = Auth::user()->id;
-        $apiUrl = 'http://localhost:3000/contacts/' . $userId;
+        $apiUrl = 'http://localhost:3000/getContacts/' . $userId;
         $apiResponse = Http::get($apiUrl);
 
         if ($apiResponse->successful()) {
