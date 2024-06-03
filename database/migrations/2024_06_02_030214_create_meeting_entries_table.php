@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->bigInteger('random_user')->nullable();
-            $table->bigInteger('name')->nullable();
-            $table->bigInteger('url')->nullable();
-            $table->bigInteger('status')->nullable();
+            $table->string('name')->nullable();
+            $table->string('url')->nullable();
+            $table->integer('status')->default(0);
             $table->timestamps();
 
             // referencia para la tabla de usuarios

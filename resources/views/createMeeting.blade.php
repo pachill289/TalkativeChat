@@ -16,7 +16,7 @@
                 Unirse a la reunión
             </button>
             @if(Auth::User())
-            <a href="{{url('crear_reunion')}}"><button id="join-btn2" class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4">
+            <a href="{{url('crearReunion')}}"><button id="join-btn2" class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4">
                 Crear reunión
             </button></a>
             @endif
@@ -27,6 +27,19 @@
     <video  id="video-element" style="display: none;" autoplay></video>
 
     <script>
+        function joinUserMeeting()
+        {
+            var link = document.getElementById('linkUrl').value;
+            if(link.trim() == '' || link.length < 1)
+            {
+                alert('Por favor introduce el link');
+                return;
+            }
+            else
+            {
+                window.location.href = link;
+            }
+        }
         document.addEventListener('DOMContentLoaded', function() {
             const videoElement = document.getElementById('video-element');
             const videoCanvas = document.getElementById('video-canvas');
