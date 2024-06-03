@@ -242,8 +242,8 @@ class MessagesController extends Controller
         $messageId = $apiResponse['_id'];
         $messageBody = $apiResponse['body'];
         $createdAt = $apiResponse['created_at'];
-        $timeAgo = 'hace 1 segundo'; // You may need to implement a function to calculate this
-        $isSender = true; // Assuming the current user is the sender
+        $timeAgo = 'hace 1 segundo';
+        $isSender = true;
         $seen = '<span class="fas fa-check" seen></span>';
 
         $attachmentHtml = '';
@@ -413,7 +413,8 @@ class MessagesController extends Controller
                 foreach ($users['data'] as $user) {
                     $authUserId = Auth::id(); // Obtiene el ID del usuario autenticado
                     $lastMessage = $this->fetchLastMessage($authUserId, $user['id']);
-                    $contacts .= $this->formatContactItem($user, $lastMessage);
+                    $unseenMessagesCount = $this->fetchUnseenMessagesCount($authUserId, $user['id']);
+                    $contacts .= $this->formatContactItem($user, $lastMessage, $unseenMessagesCount);
                 }
             } else {
                 $contacts = '<p class="message-hint center-el"><span>Tu lista de contactos está vacía</span></p>';
@@ -427,7 +428,6 @@ class MessagesController extends Controller
                 'contacts' => $contacts,
                 'total' => $users['total'],
                 'last_page' => $users['last_page'],
-                'debug_info' => $users,
                 'execution_time' => $executionTime // Tiempo de ejecución en segundos
             ], 200);
         } else {
@@ -439,7 +439,6 @@ class MessagesController extends Controller
                 'contacts' => '<p class="message-hint center-el"><span>Error al obtener contactos</span></p>',
                 'total' => 0,
                 'last_page' => 1,
-                'debug_info' => 'Error al realizar la solicitud a la API',
                 'execution_time' => $executionTime // Tiempo de ejecución en segundos
             ], 500);
         }
@@ -459,15 +458,33 @@ class MessagesController extends Controller
         return null;
     }
 
+    private function fetchUnseenMessagesCount($authUserId, $contactUserId)
+    {
+        $apiUrl = 'http://localhost:3000/countUnseenMessages/' . $authUserId . '/' . $contactUserId;
+        $apiResponse = Http::get($apiUrl);
 
-    private function formatContactItem($user, $lastMessage)
+        if ($apiResponse->successful()) {
+            return $apiResponse->json()['unseenMessagesCount'];
+        } else {
+            return 0;
+        }
+    }
+
+    private function formatContactItem($user, $lastMessage, $unseenMessagesCount)
     {
         $userId = $user['id'] ?? '';
         $userName = $user['name'] ?? 'Usuario desconocido';
         $userAvatar = $user['avatar'] ?? 'default-avatar.png';
-        $maxCreatedAt = $user['max_created_at'] ?? '';
+        $maxCreatedAt = $lastMessage['created_at'] ?? '';
         $lastMessageText = !empty($lastMessage['attachment']) && $lastMessage['attachment'] == 'image' ? 'Archivo adjunto' : $lastMessage['body'];
+
+        // Formatear la fecha y hora de creación
         $contactItemTime = $this->formatTimeAgo($maxCreatedAt);
+
+        $unseenCountHtml = '';
+        if ($unseenMessagesCount > 0) {
+            $unseenCountHtml = "<b>{$unseenMessagesCount}</b>";
+        }
 
         return "<table class=\"messenger-list-item\" data-contact=\"{$userId}\">
             <tr data-action=\"0\">
@@ -484,15 +501,19 @@ class MessagesController extends Controller
                     <span>
                         <span class=\"fas fa-file\"></span> {$lastMessageText}
                     </span>
+                    {$unseenCountHtml}
                 </td>
             </tr>
         </table>\n\n\n\n\n";
     }
 
+
+
     private function formatTimeAgo($time)
     {
-        // Implementa la lógica para convertir la fecha y hora en el formato deseado
-        return 'hace X tiempo'; // Reemplaza esto con la lógica adecuada
+        // Convertir el tiempo a una instancia de Carbon para formatear
+        $time = \Carbon\Carbon::parse($time);
+        return $time->diffForHumans();
     }
 
 
@@ -505,20 +526,36 @@ class MessagesController extends Controller
     public function updateContactItem(Request $request)
     {
         // Get user data
-        $user = User::where('id', $request['user_id'])->first();
-        if(!$user){
-            return Response::json([
-                'message' => 'Usuario no encontrado',
-            ], 401);
-        }
-        $contactItem = Chatify::getContactItem($user);
+        $apiUrl = 'http://localhost:3000/user/' . $request['user_id'];
+        $apiResponse = Http::get($apiUrl);
 
-        // send the response
-        return Response::json([
-            'contactItem' => $contactItem,
-            'users' => $user,
-        ], 200);
+        if ($apiResponse->successful()) {
+            $user = $apiResponse->json();
+
+            // Check if user exists
+            if (!$user) {
+                return Response::json([
+                    'message' => 'Usuario no encontrado',
+                ], 401);
+            }
+
+            $authUserId = Auth::id(); // Obtiene el ID del usuario autenticado
+            $lastMessage = $this->fetchLastMessage($authUserId, $user['id']);
+            $unseenMessagesCount = $this->fetchUnseenMessagesCount($authUserId, $user['id']);
+            $contactItem = $this->formatContactItem($user, $lastMessage, $unseenMessagesCount);
+
+            // send the response
+            return Response::json([
+                'contactItem' => $contactItem,
+            ], 200);
+        } else {
+            // Handle unsuccessful API response
+            return Response::json([
+                'message' => 'Error al obtener usuario desde la API',
+            ], 500);
+        }
     }
+
 
     /**
      * Put a user in the favorites list
