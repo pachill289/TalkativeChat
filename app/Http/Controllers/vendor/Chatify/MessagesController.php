@@ -290,6 +290,10 @@ class MessagesController extends Controller
      */
     public function fetch(Request $request)
     {
+
+         // Obtener el tiempo de inicio
+        $start_time = microtime(true);
+        
         $response = [
             'total' => 0,
             'last_page' => 1,
@@ -370,6 +374,15 @@ class MessagesController extends Controller
             $response['messages'] = '<p class="message-hint center-el"><span>Error al obtener mensajes</span></p>';
         }
 
+        // Obtener el tiempo de finalización
+        $end_time = microtime(true);
+
+        // Calcular el tiempo transcurrido
+        $execution_time = ($end_time - $start_time) * 1000; // Convertir a milisegundos
+
+        // Agregar el tiempo de ejecución a la respuesta
+        $response['execution_time_ms'] = $execution_time;
+
         // Devolver la respuesta en formato JSON
         return response()->json($response);
     }
@@ -382,12 +395,25 @@ class MessagesController extends Controller
      */
     public function seen(Request $request)
     {
+        $authUserId = Auth::id();
+
+        $userId = $request->id;
+
         // make as seen
-        $seen = Chatify::makeSeen($request['id']);
-        // send the response
-        return Response::json([
-            'status' => $seen,
-        ], 200);
+        $response = Http::put('http://localhost:3000/messages/' . $authUserId . '/' . $userId . '/seen');
+        
+        // check if the request was successful
+        if($response->successful()) {
+            // send the response
+            return response()->json([
+                'status' => 1,
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Error al marcar los mensajes como vistos'
+            ], 500);
+        }
     }
 
     /**
