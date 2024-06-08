@@ -16,7 +16,7 @@
                 Unirse a la reunión
             </button>
             @if(Auth::User())
-            <a href="{{url('crearReunion')}}"><button id="join-btn2" class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4">
+            <a href="{{url('crearTokenVideollamada')}}"><button id="join-btn2" class="bg-blue-800 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4">
                 Crear reunión
             </button></a>
             @endif
@@ -32,7 +32,7 @@
             var link = document.getElementById('linkUrl').value;
             if(link.trim() == '' || link.length < 1)
             {
-                alert('Por favor introduce el link');
+                alert('Por favor introduce un link válido');
                 return;
             }
             else

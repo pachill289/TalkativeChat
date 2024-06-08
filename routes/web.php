@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\ProfileController;
-use App\Models\UserMeeting;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
+
+
 
 /*
 |--------------------------------------------------------------------------
@@ -21,43 +21,10 @@ Route::get('/createMeeting', function () {
     return view('createMeeting');
 })->name('meeting');
 
-// crear una reunión con el servicio de agora
-Route::get('/crearReunion', function () {
+// crear un token único de videollamada con el servicio de agora
+Route::get('/crearTokenVideollamada', [MeetingController::class, 'createVideocallToken']);
 
-    $meeting = Auth::User()->getUserMeetingInfo()->first();
-
-    // Verifica si existe alguna reunión, si existe
-    // alguna reunión genera el token de conexión para el usuario 
-    // de lo contrario crea una reunión
-    if(!isset($meeting->id))
-    {
-        $name = 'agora'.rand(1111,9999);
-        $meetingData = createAgoraProject($name);
-
-        //verificar si se creo el proyecto
-        if(isset($meetingData->project->id))
-        {
-            //crear una nueva reunión
-            $meeting = new UserMeeting();
-            $meeting->user_id = Auth::User()->id;
-            $meeting->app_id = $meetingData->project->vendor_key;
-            $meeting->appCertificate = $meetingData->project->sign_key;
-            $meeting->channel = $meetingData->project->name;
-            $meeting->uid = rand(11111,99999);
-            $meeting->save();
-        }
-        else
-        {
-            echo "El proyecto no se pudo crear";
-        }
-    }
-    $meeting = Auth::User()->getUserMeetingInfo()->first();
-    $token = createToken($meeting->app_id,$meeting->appCertificate,$meeting->channel);
-    $meeting->token = $token;
-    $meeting->url = generateRandomString();
-    $meeting->save();
-    prx($token);
-})->name('crearReunion');
+Route::get('/joinVideocall/{url?}', [MeetingController::class, 'joinMeeting']);
 
 Route::get('/', function () {
     return view('welcome');
