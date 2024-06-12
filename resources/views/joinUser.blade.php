@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>video Stream</title>
+    <title>Videollamada</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" type="text/css" media="screen" href="{{asset('agoraVideo/main.css')}}">
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"  crossorigin="anonymous"></script>
 
@@ -24,10 +26,9 @@
         <div id="video-streams"></div>
 
         <div id="stream-controls">
-            <button id="leave-btn">Dejar videollamada</button>
+            <button id="leave-btn" title="Salir de la videollamada"><span class="fas fa-video"></span></button>
             <button id="mic-btn">Activar micrófono</button>
             <button id="camera-btn">Activar cámara</button>
-           
         </div>
     </div>
     <input id="appid" type="hidden" value="{{$meeting->app_id}}" readonly>

@@ -92,10 +92,6 @@ class MeetingController extends Controller
             //prx(get_defined_vars());
             return view('joinUser',get_defined_vars());
         }
-        else
-        {
-
-        }
     }
 
     public function createEntry ($user_id,$random_user,$url)

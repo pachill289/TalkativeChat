@@ -124,6 +124,16 @@ button{
     cursor: pointer;
 }
 
+#leave-btn{
+    border:none;
+    background-color: red;
+    color:#fff;
+    padding:10px 20px;
+    font-size:16px;
+    margin:2px;
+    cursor: pointer;
+}
+
 #stream-controls{
     display: none;
     justify-content: center;
