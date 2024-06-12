@@ -837,6 +837,8 @@ function checkInternet(state, selector) {
        selector.slideDown("fast", function () {
          selector.find(".ic-connected").show();
        });
+       //OJO SET ACTIVE STATUS
+       setActiveStatus(1);
        setTimeout(function () {
          $(".internet-connection").slideUp("fast");
        }, 3000);
@@ -1179,6 +1181,7 @@ function deleteMessage(id) {
      if (!data.deleted)
        console.error("Error occurred, message can not be deleted!");
 
+     console.log(id);
      sendMessageDeleteEvent(id);
 
      // Hide waiting alert modal
@@ -1285,6 +1288,38 @@ function setActiveStatus(status) {
 $(document).ready(function () {
  // get contacts list
  getContacts();
+
+ var checkElementExistence = setInterval(function() {
+  var mensajeDivs = document.querySelectorAll('div[id="mensaje"][value]');
+  if (mensajeDivs.length > 0) {
+      clearInterval(checkElementExistence); // Detener el temporizador
+
+      // Referencia a la base de datos de Firebase
+      var db = firebase.database();
+
+      mensajeDivs.forEach(function(mensajeDiv) {
+          var userId = mensajeDiv.getAttribute('value');
+
+          // Referencia al usuario en userconfig
+          var userRef = db.ref('userconfig/' + userId);
+
+          // Escuchar cambios en el estado activo del usuario
+          userRef.on('value', function(snapshot) {
+              var userData = snapshot.val();
+              var estadoUsuario = document.getElementById('estadoUsuario' + userId);
+              var estadoPunto = document.getElementById('estadoPunto' + userId);
+              
+              if (userData && userData.active_status) {
+                  estadoUsuario.innerText = 'En línea';
+                  estadoPunto.className = 'estado-punto estado-en-linea';
+              } else {
+                  estadoUsuario.innerText = 'Desconectado';
+                  estadoPunto.className = 'estado-punto estado-desconectado';
+              }
+          });
+      });
+  }
+}, 100); // Verificar cada 100 milisegundos si los elementos existen
 
  // get contacts list
  //getFavoritesList();
@@ -1530,6 +1565,7 @@ $(document).ready(function () {
        deleteConversation(getMessengerId());
      } else {
        deleteMessage(id);
+       console.log(id);
      }
      app_modal({
        show: false,
@@ -1547,13 +1583,13 @@ $(document).ready(function () {
    });
 
  // Settings button action to show settings modal
- $("body").on("click", ".settings-btn", function (e) {
+ /*$("body").on("click", ".settings-btn", function (e) {
    e.preventDefault();
    app_modal({
      show: true,
      name: "settings",
    });
- });
+ });*/
 
  // on submit settings' form
  $("#update-settings").on("submit", (e) => {

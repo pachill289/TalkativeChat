@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Request as FacadesRequest;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Log;
 
 class MessagesController extends Controller
 {
@@ -43,13 +44,12 @@ class MessagesController extends Controller
      * @param int $id
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Contracts\View\View
      */
-    public function index( $id = null)
+    public function index($id = null)
     {
-        $messenger_color = Auth::user()->messenger_color;
         return view('Chatify::pages.app', [
             'id' => $id ?? 0,
-            'messengerColor' => $messenger_color ? $messenger_color : Chatify::getFallbackColor(),
-            'dark_mode' => Auth::user()->dark_mode < 1 ? 'light' : 'dark',
+            'messengerColor' => Chatify::getFallbackColor(),
+            'dark_mode' => 'light',
         ]);
     }
 
@@ -65,27 +65,39 @@ class MessagesController extends Controller
         // Registrar el tiempo inicial
         $startTime = microtime(true);
 
-        //$favorite = Chatify::inFavorite($request['id']);
-        $fetch = User::where('id', $request['id'])->first();
-        $userAvatar = null;
+        // Obtener datos del primer endpoint
+        $userResponse = Http::get('http://localhost:3000/user/' . $request['id']);
+        $userData = $userResponse->json();
 
-        if ($fetch) {
-            $userAvatar = Chatify::getUserWithAvatar($fetch)->avatar;
-            // Si la imagen es una URL de imgbb, obtén la URL directamente
-            if (Str::startsWith($userAvatar, 'https://i.ibb.co/')) {
-                $imageId = basename(parse_url($userAvatar, PHP_URL_PATH));
-                $userAvatar = $this->getImageFromImgbb($imageId);
-            }
+        // Establecer avatar por defecto
+        $defaultAvatar = 'https://upload.wikimedia.org/wikipedia/commons/1/14/9-94702_user-outline-icon-clipart-png-download-profile-icon.png';
+
+        // Intentar obtener datos del segundo endpoint
+        try {
+            $configResponse = Http::get('http://localhost:3001/getUserConfig/' . $request['id']);
+            $configData = $configResponse->successful() ? $configResponse->json() : [];
+            $userAvatar = $configData['avatar'] ?? null;
+        } catch (\Exception $e) {
+            // Usar avatar por defecto si falla la solicitud
+            $userAvatar = $defaultAvatar;
         }
+
+        // Si no se encontró userAvatar, usar el avatar por defecto
+        if (!$userAvatar) {
+            $userAvatar = $defaultAvatar;
+        }
+
+        // Actualizar avatar en los datos de usuario
+        $userData['avatar'] = $userAvatar;
 
         // Registrar el tiempo final y calcular el tiempo de ejecución
         $endTime = microtime(true);
         $executionTime = $endTime - $startTime;
 
+        // Devolver el JSON combinado
         return Response::json([
-            //'favorite' => $favorite,
-            'fetch' => $fetch ?? null,
-            'user_avatar' => $userAvatar ?? null,
+            'fetch' => $userData,
+            'user_avatar' => $userAvatar,
             'execution_time' => $executionTime // Tiempo de ejecución en segundos
         ]);
     }
@@ -400,7 +412,7 @@ class MessagesController extends Controller
         $userId = $request->id;
 
         // make as seen
-        $response = Http::put('http://localhost:3000/messages/' . $authUserId . '/' . $userId . '/seen');
+        $response = Http::put('http://localhost:3000/makeSeen/' . $authUserId . '/' . $userId . '/seen');
         
         // check if the request was successful
         if($response->successful()) {
@@ -500,7 +512,17 @@ class MessagesController extends Controller
     {
         $userId = $user['id'] ?? '';
         $userName = $user['name'] ?? 'Usuario desconocido';
-        $userAvatar = $user['avatar'] ?? 'default-avatar.png';
+
+        // Obtener el avatar de userconfig o usar el avatar por defecto
+        $userAvatar = 'https://upload.wikimedia.org/wikipedia/commons/1/14/9-94702_user-outline-icon-clipart-png-download-profile-icon.png'; // Avatar por defecto
+        try {
+            $configResponse = Http::get('http://localhost:3001/getUserConfig/' . $userId);
+            $configData = $configResponse->successful() ? $configResponse->json() : [];
+            $userAvatar = $configData['avatar'] ?? $userAvatar; // Usar avatar de userconfig o el por defecto
+        } catch (\Exception $e) {
+            // Usar el avatar por defecto si la solicitud a userconfig falla
+        }
+
         $maxCreatedAt = $lastMessage['created_at'] ?? '';
         $lastMessageText = !empty($lastMessage['attachment']) && $lastMessage['attachment'] == 'image' ? 'Archivo adjunto' : $lastMessage['body'];
 
@@ -516,12 +538,15 @@ class MessagesController extends Controller
             <tr data-action=\"0\">
                 <td style=\"position: relative\">
                     <div class=\"avatar av-m\"
-                        style=\"background-image: url('http://localhost:8000/storage/users-avatar/{$userAvatar}');\">
+                        style=\"background-image: url('{$userAvatar}');\">
                     </div>
                 </td>
                 <td>
                     <p data-id=\"{$userId}\" data-type=\"user\">
                         {$userName}
+                        <span id='estadoPunto{$userId}' class='estado-punto'></span>
+                        <span id='estadoUsuario{$userId}'></span>
+                        <div id='mensaje' value='{$userId}'></div>
                         <span class=\"contact-item-time\" data-time=\"{$maxCreatedAt}\">{$contactItemTime}</span>
                     </p>
                     <span>
@@ -532,6 +557,7 @@ class MessagesController extends Controller
             </tr>
         </table>\n\n\n\n\n";
     }
+
 
 
 
@@ -726,18 +752,27 @@ class MessagesController extends Controller
      */
     public function deleteMessage(Request $request)
     {
-        // delete
-        $delete = Chatify::deleteMessage($request['id']);
+        // Obtener el ID del mensaje del request
+        $messageId = $request->input('id');
 
-        // send the response
+        // Construir la URL del endpoint
+        $url = "http://localhost:3000/deleteMessage/{$messageId}";
+
+        // Realizar la solicitud DELETE al endpoint
+        $response = Http::delete($url);
+
+        // Verificar la respuesta
+        $deleted = $response->successful();
+
+        // Enviar la respuesta
         return Response::json([
-            'deleted' => $delete ? 1 : 0,
+            'deleted' => $deleted ? 1 : 0,
         ], 200);
     }
 
     public function updateSettings(Request $request)
     {
-        $msg = null;
+        /*$msg = null;
         $error = $success = 0;
 
         // dark mode
@@ -789,7 +824,7 @@ class MessagesController extends Controller
             'status' => $success ? 1 : 0,
             'error' => $error ? 1 : 0,
             'message' => $error ? $msg : 0,
-        ], 200);
+        ], 200);*/
     }
 
     /**
@@ -801,9 +836,23 @@ class MessagesController extends Controller
     public function setActiveStatus(Request $request)
     {
         $activeStatus = $request['status'] > 0 ? 1 : 0;
-        $status = User::where('id', Auth::user()->id)->update(['active_status' => $activeStatus]);
-        return Response::json([
-            'status' => $status,
-        ], 200);
+        $id_user = Auth::user()->id;
+
+        $client = new Client();
+        $url = 'http://localhost:3001/updateActiveStatus/' . $id_user . '/' . $activeStatus;
+
+        try {
+            $response = $client->put($url);
+            $status = json_decode($response->getBody(), true);
+            return Response::json([
+                'status' => $status,
+            ], 200);
+        } catch (\Exception $e) {
+            return Response::json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
+
 }

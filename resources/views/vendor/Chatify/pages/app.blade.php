@@ -6,11 +6,11 @@
         {{-- Encabezado y barra de búsqueda --}}
         <div class="m-header">
             <nav>
-                <a href="#"><i class="fas fa-comments"></i> <span class="messenger-headTitle">TALKATIVE CHAT</span> </a>
+                <a href="/chat"><i class="fas fa-comments"></i> <span class="messenger-headTitle">TALKATIVE CHAT</span> </a>
                 {{-- botones de encabezado --}}
                 <nav class="m-header-right">
-                    <a href="#"><i class="fas fa-cog settings-btn"></i></a>
-                    <a href="#" class="listView-x"><i class="fas fa-times"></i></a>
+                    <a href="/profile"><i class="fas fa-cog settings-btn"></i></a>
+                    <!--<a href="#" class="listView-x"><i class="fas fa-times"></i></a>-->
                 </nav>
             </nav>
             {{-- Entrada de búsqueda --}}
