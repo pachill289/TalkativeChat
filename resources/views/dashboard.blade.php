@@ -7,24 +7,114 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
 </head>
+<style>
+
+        #chart-container {
+            width: 85%;
+            max-width: 700;
+            background: white;
+            padding: 25px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+
+        }        
+        
+        .div_dashboard{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center; /* Centra el texto internamente */
+        }
+        
+</style>
+</head>
+
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
   <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl leading-tight">
-            {{ __('Página de bienvenida') }}
-        </h2>
-    </x-slot>
-
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 bg-green-600 dark:text-gray-100">
-                    {{ __("¡Inicio de sesión exitoso!") }}
-                </div>
-            </div>
-        </div>
+   
+    <!-- Dashboard class  -->
+    <div class="div_dashboard">
+    <div id="chart-container">
+        <canvas id="messagesChart"></canvas>
     </div>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        async function fetchMessages() {
+            try {
+                const response = await fetch('http://localhost:3000/getMessages');
+                const messages = await response.json();
+                return messages;
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+                return [];
+            }
+        }
+
+        function processData(messages) {
+            const dailyCount = {};
+            messages.forEach(message => {
+                const date = new Date(message.created_at).toISOString().split('T')[0];
+                dailyCount[date] = (dailyCount[date] || 0) + 1;
+            });
+            const labels = Object.keys(dailyCount).sort();
+            const data = labels.map(date => dailyCount[date]);
+            return { labels, data };
+        }
+
+        async function createChart() {
+            const messages = await fetchMessages();
+            const { labels, data } = processData(messages);
+
+            const ctx = document.getElementById('messagesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Mensajes por Día',
+                        data: data,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Fecha'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Cantidad de Mensajes'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        createChart();
+    </script>
+    </div>
+
     <!-- SECCION INTRODUCCIÓN -->
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -59,6 +149,8 @@
             </div>
         </div>
     </div>
+    
+    
 
     <!-- SECCION DE API -->
     {{-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
