@@ -26,6 +26,25 @@
             align-items: center;
             text-align: center; /* Centra el texto internamente */
         }
+
+        .contenedor{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center; /* Centra el texto internamente */
+            width:90%;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        .container_users{
+            display: flex;
+            align-items: center;
+            text-align: center; 
+            margin: 150px;
+            margin-top: 10px;
+            margin-bottom: 1px;
+        }
         
 </style>
 </head>
@@ -33,28 +52,203 @@
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
   <x-app-layout>
    
-    <!-- Dashboard class  -->
+    <!-- Dashboard class mensajes -->
     <div class="div_dashboard">
-    <div id="chart-container">
-        <canvas id="messagesChart"></canvas>
+        <div id="chart-container">
+            <canvas id="messagesChart"></canvas>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            async function fetchMessages() {
+                try {
+                    const response = await fetch('http://localhost:3000/getMessages');
+                    const messages = await response.json();
+                    return messages;
+                } catch (error) {
+                    console.error('Error fetching messages:', error);
+                    return [];
+                }
+            }
+
+            function processData(messages) {
+                const dailyCount = {};
+                messages.forEach(message => {
+                    const date = new Date(message.created_at).toISOString().split('T')[0];
+                    dailyCount[date] = (dailyCount[date] || 0) + 1;
+                });
+                const labels = Object.keys(dailyCount).sort();
+                const data = labels.map(date => dailyCount[date]);
+                return { labels, data };
+            }
+
+            async function createChart() {
+                const messages = await fetchMessages();
+                const { labels, data } = processData(messages);
+
+                const ctx = document.getElementById('messagesChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Mensajes por Día',
+                            data: data,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Fecha'
+                                }
+                            },
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Cantidad de Mensajes'
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            createChart();
+        </script>
+    </div>
+
+    <!-- Dashboard class usuarios -->
+    <div class="container_users">
+        <div class="contenedor">
+            <div id="chart-container">
+                <canvas id="usersChart"></canvas>
+            </div>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                async function fetchUsers() {
+                    try {
+                        const response = await fetch('http://localhost:3000/users/view');
+                        const users = await response.json();
+                        return users;
+                    } catch (error) {
+                        console.error('Error fetching users:', error);
+                        return [];
+                    }
+                }
+
+                function processUserData(users) {
+                    const dailyCount = {};
+                    users.forEach(user => {
+                        const date = new Date(user.created_at).toISOString().split('T')[0];
+                        dailyCount[date] = (dailyCount[date] || 0) + 1;
+                    });
+                    const labels = Object.keys(dailyCount).sort();
+                    const data = labels.map(date => dailyCount[date]);
+                    return { labels, data };
+                }
+
+                async function createChart() {
+                    const users = await fetchUsers();
+                    const { labels, data } = processUserData(users);
+
+                    const ctx = document.getElementById('usersChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Usuarios Registrados',
+                                data: data,
+                                backgroundColor: labels.map(() => getRandomColor()),
+                                borderColor: 'rgba(0,0,0,0.1)',
+                                borderWidth: 1,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Fecha'
+                                    }
+                                },
+                                y: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Cantidad de Usuarios'
+                                    },
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+
+                function getRandomColor() {
+                    const letters = '0123456789ABCDEF';
+                    let color = '#';
+                    for (let i = 0; i < 6; i++) {
+                        color += letters[Math.floor(Math.random() * 16)];
+                    }
+                    return color;
+                }
+
+                createChart();
+            </script>
+        </div>
+        <div class="contenedor">
+        <div id="chart-container">
+        <canvas id="usersLineChart"></canvas>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        async function fetchMessages() {
+        async function fetchUsers() {
             try {
-                const response = await fetch('http://localhost:3000/getMessages');
-                const messages = await response.json();
-                return messages;
+                const response = await fetch('http://localhost:3000/users/view');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const users = await response.json();
+                return users;
             } catch (error) {
-                console.error('Error fetching messages:', error);
+                console.error('Error fetching users:', error);
                 return [];
             }
         }
 
-        function processData(messages) {
+        function processUserData(users) {
             const dailyCount = {};
-            messages.forEach(message => {
-                const date = new Date(message.created_at).toISOString().split('T')[0];
+            users.forEach(user => {
+                const date = new Date(user.created_at).toISOString().split('T')[0];
                 dailyCount[date] = (dailyCount[date] || 0) + 1;
             });
             const labels = Object.keys(dailyCount).sort();
@@ -62,21 +256,27 @@
             return { labels, data };
         }
 
-        async function createChart() {
-            const messages = await fetchMessages();
-            const { labels, data } = processData(messages);
+        async function createLineChart() {
+            const users = await fetchUsers();
+            const { labels, data } = processUserData(users);
 
-            const ctx = document.getElementById('messagesChart').getContext('2d');
+            if (!labels.length) {
+                console.error('No data available to display.');
+                return;
+            }
+
+            const ctx = document.getElementById('usersLineChart').getContext('2d');
             new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Mensajes por Día',
+                        label: 'Usuarios Registrados',
                         data: data,
                         borderColor: 'rgba(75, 192, 192, 1)',
                         backgroundColor: 'rgba(75, 192, 192, 0.2)',
                         fill: true,
+                        tension: 0.4 // Añade suavidad a la línea
                     }]
                 },
                 options: {
@@ -102,7 +302,7 @@
                             display: true,
                             title: {
                                 display: true,
-                                text: 'Cantidad de Mensajes'
+                                text: 'Cantidad de Usuarios'
                             },
                             beginAtZero: true
                         }
@@ -111,8 +311,192 @@
             });
         }
 
-        createChart();
+        createLineChart();
     </script>
+
+        </div>
+    </div>
+
+    <div class="container_users">
+        <div class="contenedor">
+        <div id="chart-container">
+                <canvas id="communitiesLineChart"></canvas>
+            </div>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                async function fetchCommunities() {
+                    try {
+                        const response = await fetch('http://localhost:3000/community/view');
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        const communities = await response.json();
+                        return communities;
+                    } catch (error) {
+                        console.error('Error fetching communities:', error);
+                        return [];
+                    }
+                }
+
+                function processCommunityData(communities) {
+                    const dailyCreations = {};
+                    communities.forEach(community => {
+                        const date = new Date(community.created_at).toISOString().split('T')[0];
+                        dailyCreations[date] = (dailyCreations[date] || 0) + 1;
+                    });
+                    const labels = Object.keys(dailyCreations).sort();
+                    const data = labels.map(date => dailyCreations[date]);
+                    return { labels, data };
+                }
+
+                async function createLineChart() {
+                    const communities = await fetchCommunities();
+                    const { labels, data } = processCommunityData(communities);
+
+                    if (!labels.length) {
+                        console.error('No data available to display.');
+                        return;
+                    }
+
+                    const ctx = document.getElementById('communitiesLineChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Comunidades Creadas',
+                                data: data,
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                fill: true,
+                                tension: 0.4 // Añade suavidad a la línea
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Fecha'
+                                    }
+                                },
+                                y: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Cantidad de Comunidades'
+                                    },
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+
+                createLineChart();
+            </script>
+        </div>
+
+        <div class="contenedor">
+        <div id="chart-container">
+                <canvas id="updatesLineChart"></canvas>
+            </div>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+                async function fetchUsers() {
+                    try {
+                        const response = await fetch('http://localhost:3000/users/view');
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        const users = await response.json();
+                        return users;
+                    } catch (error) {
+                        console.error('Error fetching users:', error);
+                        return [];
+                    }
+                }
+
+                function processUpdateData(users) {
+                    const dailyUpdates = {};
+                    users.forEach(user => {
+                        const date = new Date(user.updated_at).toISOString().split('T')[0];
+                        dailyUpdates[date] = (dailyUpdates[date] || 0) + 1;
+                    });
+                    const labels = Object.keys(dailyUpdates).sort();
+                    const data = labels.map(date => dailyUpdates[date]);
+                    return { labels, data };
+                }
+
+                async function createLineChart() {
+                    const users = await fetchUsers();
+                    const { labels, data } = processUpdateData(users);
+
+                    if (!labels.length) {
+                        console.error('No data available to display.');
+                        return;
+                    }
+
+                    const ctx = document.getElementById('updatesLineChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Actualizaciones de Usuarios',
+                                data: data,
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                fill: true,
+                                tension: 0.4 // Añade suavidad a la línea
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Fecha'
+                                    }
+                                },
+                                y: {
+                                    display: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Cantidad de Actualizaciones'
+                                    },
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                }
+
+                createLineChart();
+            </script>
+        </div>
     </div>
 
     <!-- SECCION INTRODUCCIÓN -->
@@ -121,7 +505,7 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 text-lg dark:text-gray-100">
                     <div class="mb-6">
-                        <h3 class="text-3xl font-bold mb-4">¡Bienvenido a Talkative Chat!</h3>
+                        <h3 class="text-3xl font-bold mb-4">¡Talkative Chat!</h3>
                         <p>
                             Estamos encantados de tenerte con nosotros. Nuestro objetivo es ofrecer una experiencia de comunicación intuitiva y eficiente, ayudándote a mantenerte conectado con tus amigos, familiares y conocidos de una manera más fácil y divertida 😃.
                         </p>
@@ -143,26 +527,12 @@
                                 Desde compartir archivos importantes hasta enviar emojis y stickers para darle vida a sus chats, nuestro sistema de mensajería está repleto de funcionalidades diseñadas para mejorar la comunicación diaria.</div>
                         </div>
                         <!-- Add Pagination -->
-                        <div class="swiper-pagination"></div>
+                        
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    
-
-    <!-- SECCION DE API -->
-    {{-- <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-                    <script>
-                        axios.get('/datos')
-                            .then(function (response) {
-                                document.getElementById('datos').innerText = JSON.stringify(response.data);
-                            })
-                            .catch(function (error) {
-                                console.error(error);
-                            });
-                    </script> --}}
   </x-app-layout>
 
   <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
