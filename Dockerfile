@@ -1,43 +1,46 @@
-# Use PHP with Apache as the base image
-FROM php:8.2-apache as web
+# Usa la imagen oficial de Node.js para el frontend
+FROM node:14 AS frontend
 
-# Install Additional System Dependencies
-RUN apt-get update && apt-get install -y \
-    libzip-dev \
-    zip \
-    libpq-dev \
-    curl \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Crea un directorio de trabajo
+WORKDIR /usr/src/app
 
-# Enable Apache mod_rewrite for URL rewriting
-RUN a2enmod rewrite
+# Copia el package.json y package-lock.json
+COPY package*.json ./
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql zip
+# Instala las dependencias
+RUN npm install
 
-# Configure Apache DocumentRoot to point to Laravel's public directory
-# and update Apache configuration files
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+# Copia el resto del código de la aplicación
+COPY . .
 
-# Set ServerName to avoid warning messages
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+# Expone el puerto que usa la aplicación
+EXPOSE 3003
 
-# Copy the application code
-COPY . /var/www/html
+# Comando para ejecutar la aplicación
+CMD ["npm", "run", "dev"]
 
-# Set the working directory
-WORKDIR /var/www/html
+# Usa la imagen oficial de PHP 8.2 para el backend
+FROM php:8.2-cli AS backend
 
-# Install composer
+# Instala las herramientas necesarias y extensiones de PHP
+RUN apt-get update && \
+    apt-get install -y zip unzip git libzip-dev && \
+    docker-php-ext-install zip
+
+# Instala Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Install project dependencies
-RUN composer install --no-dev --optimize-autoloader
+# Crea un directorio de trabajo
+WORKDIR /var/www/html
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+# Copia los archivos de la aplicación PHP
+COPY . .
 
-# Expose port 80
-EXPOSE 80
+# Instala las dependencias de PHP
+RUN composer install
+
+# Expone el puerto que usa la aplicación
+EXPOSE 8000
+
+# Comando para ejecutar la aplicación
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
